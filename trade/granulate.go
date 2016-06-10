@@ -7,29 +7,41 @@ import (
 // Granularity is a helper object for building Tick for a spesific granularity
 // .granularity is in secounds
 type Granularity struct {
-	interval    int64
-	tableName   string
-	currentTick *Tick
+	Interval    int64
+	TableName   string
+	CurrentTick *Tick
 }
 
 // Granulate trade into granularity and returns new Tick if therie is a new Tick
 func Granulate(trade Trade, granularity *Granularity) []*Tick {
 	newTicks := []*Tick{}
-	if trade.OriginID > granularity.currentTick.LastOriginID {
-		for trade.TradeTime > granularity.currentTick.TickEndTime {
+	if trade.OriginID > granularity.CurrentTick.LastOriginID {
+		for trade.TradeTime > granularity.CurrentTick.TickEndTime {
 			// add tick to return table
-			newTicks = append(newTicks, granularity.currentTick)
-			granularity.currentTick = &Tick{
-				Open:         granularity.currentTick.Close,
-				Close:        granularity.currentTick.Close,
-				High:         granularity.currentTick.Close,
-				Low:          granularity.currentTick.Close,
+			newTicks = append(newTicks, granularity.CurrentTick)
+			granularity.CurrentTick = &Tick{
+				Open:         granularity.CurrentTick.Close,
+				Close:        granularity.CurrentTick.Close,
+				High:         granularity.CurrentTick.Close,
+				Low:          granularity.CurrentTick.Close,
 				Volume:       *new(big.Float),
-				LastOriginID: granularity.currentTick.LastOriginID,
-				TickEndTime:  granularity.currentTick.TickEndTime + granularity.interval,
+				LastOriginID: granularity.CurrentTick.LastOriginID,
+				TickEndTime:  granularity.CurrentTick.TickEndTime + granularity.Interval,
 			}
 		}
-		addTradeToTick(trade, granularity.currentTick)
+		if granularity.CurrentTick.Volume.Cmp(big.NewFloat(0)) == 0 {
+			granularity.CurrentTick = &Tick{
+				Open:         trade.Price,
+				Close:        trade.Price,
+				High:         trade.Price,
+				Low:          trade.Price,
+				Volume:       trade.Amount,
+				LastOriginID: trade.OriginID,
+				TickEndTime:  granularity.CurrentTick.TickEndTime,
+			}
+		} else {
+			addTradeToTick(trade, granularity.CurrentTick)
+		}
 	}
 	return newTicks
 }
@@ -37,9 +49,9 @@ func Granulate(trade Trade, granularity *Granularity) []*Tick {
 // InitializeGranularityFromTick should be used when continuing building a already started Tick-table
 func InitializeGranularityFromTick(lastTick Tick, tableName string, interval int64) Granularity {
 	return Granularity{
-		interval:  interval,
-		tableName: tableName,
-		currentTick: &Tick{
+		Interval:  interval,
+		TableName: tableName,
+		CurrentTick: &Tick{
 			Open:         lastTick.Close,
 			Close:        lastTick.Close,
 			High:         lastTick.Close,
@@ -55,14 +67,14 @@ func InitializeGranularityFromTick(lastTick Tick, tableName string, interval int
 // if theire already is Ticks in the table use 'InitializeGranularityFromTick'
 func InitializeGranularityFromTrade(trade Trade, tableName string, interval int64) Granularity {
 	return Granularity{
-		interval:  interval,
-		tableName: tableName,
-		currentTick: &Tick{
+		Interval:  interval,
+		TableName: tableName,
+		CurrentTick: &Tick{
 			Open:         trade.Price,
 			Close:        trade.Price,
 			High:         trade.Price,
 			Low:          trade.Price,
-			Volume:       *new(big.Float),
+			Volume:       trade.Amount,
 			LastOriginID: trade.OriginID,
 			TickEndTime:  trade.TradeTime + interval,
 		},
