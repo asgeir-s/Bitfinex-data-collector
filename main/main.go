@@ -7,10 +7,11 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/cluda/btcdata/trade"
-
 	"github.com/caarlos0/env"
 	"github.com/cluda/bitfinex-api-go"
+	"github.com/cluda/btcdata/trade"
+	"github.com/cluda/btcdata/database"
+	"github.com/cluda/btcdata/util"
 	_ "github.com/lib/pq"
 )
 
@@ -23,7 +24,6 @@ type databaseConfig struct {
 }
 
 func main() {
-
 	granularitiInterval := []int{7200} //1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400
 
 	dbConfig := databaseConfig{}
@@ -84,7 +84,7 @@ func main() {
 	granularities := getGranularityes(granularitiInterval, lastTicks, oldestProsesedTrade)
 
 	for _, value := range granularities {
-		printTick(value.CurrentTick)
+		util.PrintTick(value.CurrentTick)
 	}
 
 	// granulate tick from db
@@ -131,13 +131,13 @@ func main() {
 				Amount:    trades[i].Amount,
 				Type:      trades[i].Type,
 			}
-			printTrade(&thisTrade)
+			util.PrintTrade(&thisTrade)
 
 			sqlStr += "(" + strconv.FormatInt(thisTrade.OriginID, 10) + ", " + strconv.FormatInt(thisTrade.TradeTime, 10) + ", " + thisTrade.Price.String() + ", " + thisTrade.Amount.String() + ", '" + thisTrade.Type + "'),"
 			addTrade(db, thisTrade, &granularities)
 		}
 
-    println("sqlStr:", sqlStr)
+		println("sqlStr:", sqlStr)
 		//trim the last ,
 		sqlStr = sqlStr[0:len(sqlStr)-1] + ";"
 
@@ -159,25 +159,7 @@ func main() {
 	// rubscribe to websocket and granulate on save
 }
 
-func createGranularitiesTables(db *sql.DB, granularities []int) (string, error) {
-	for _, value := range granularities {
-		_, err := db.Exec("CREATE TABLE IF NOT EXISTS bitfinex_tick_" + strconv.Itoa(value) + ` (
-  id serial primary key,
-  open numeric(10,3) NOT NULL,
-  close numeric(10,3) NOT NULL,
-  high numeric(10,3) NOT NULL,
-  low numeric(10,3) NOT NULL,
-  volume numeric(20,8) NOT NULL,
-  last_origin_id bigint NOT NULL,
-  tick_end_time bigint NOT NULL
-  )`)
-		if err != nil {
-			fmt.Println("could not create table for granularitie ", value)
-			return "", err
-		}
-	}
-	return "OK", nil
-}
+
 
 func getOldestTradeOriginIDInTickTables(granularities []int, lastTicks map[int]trade.Tick) int64 {
 	var oldest int64
@@ -294,48 +276,7 @@ func addTrade(db *sql.DB, thisTrade trade.Trade, granularities *map[int]trade.Gr
 	//fmt.Println("thisTrade.OriginID:", thisTrade.OriginID)
 	for _, granularity := range *granularities {
 		ticks := trade.Granulate(thisTrade, &granularity)
-
 		// write ticks to database
-		if len(ticks) > 0 {
-			sqlStr := "INSERT INTO " + granularity.TableName + " (open, close, high, low, volume, last_origin_id, tick_end_time) VALUES "
-
-			for i := len(ticks) - 1; i >= 0; i-- {
-				tick := ticks[i]
-				//printTick(tick)
-				sqlStr += "(" + tick.Open.String() + ", " + tick.Close.String() + ", " + tick.High.String() + ", " + tick.Low.String() + ", " + tick.Volume.String() + ", " + strconv.FormatInt(tick.LastOriginID, 10) + ", " + strconv.FormatInt(tick.TickEndTime, 10) + "),"
-			}
-			//trim the last ,
-			sqlStr = sqlStr[0:len(sqlStr)-1] + ";"
-
-			//write to database
-			_, err := db.Exec(sqlStr)
-			if err != nil {
-				fmt.Println("addTrade: could not write the ticks to the database")
-				log.Fatal(err)
-			}
-		}
+		database.InsertTicks(db, granularity.TableName, &ticks)
 	}
-}
-
-func printTick(tick *trade.Tick) {
-	fmt.Println("{")
-	fmt.Println("   Open: ", tick.Open.String())
-	fmt.Println("   Close: ", tick.Close.String())
-	fmt.Println("   High: ", tick.High.String())
-	fmt.Println("   Low: ", tick.Low.String())
-	fmt.Println("   Volume: ", tick.Volume.String())
-	fmt.Println("   LastOriginID: ", tick.LastOriginID)
-	fmt.Println("   TickEndTime: ", tick.TickEndTime)
-	fmt.Println("},")
-}
-
-func printTrade(trade *trade.Trade) {
-	fmt.Println("{")
-	fmt.Println("   ID: ", trade.ID)
-	fmt.Println("   OriginID: ", trade.OriginID)
-	fmt.Println("   Price: ", trade.Price.String())
-	fmt.Println("   Amount: ", trade.Amount.String())
-	fmt.Println("   TradeTime: ", trade.TradeTime)
-	fmt.Println("   Type: ", trade.Type)
-	fmt.Println("},")
 }

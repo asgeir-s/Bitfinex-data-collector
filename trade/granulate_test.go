@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"github.com/cluda/btcdata/util"
 
 	"github.com/cluda/btcdata/trade"
 )
@@ -103,9 +104,9 @@ func TestGranulateStartFromTrade(t *testing.T) {
 		t.Errorf("fail")
 	}
 	if granularityObjectTrade.CurrentTick.Close.Cmp(&testTrades[1].Price) != 0 {
-		t.Errorf("fail")
+		t.Errorf("fail: CurrentTick.Close: " + granularityObjectTrade.CurrentTick.Close.String() + 
+		" and testTrades[1].Price: " + testTrades[1].Price.String() + " should be equal")
 	}
-
 	if granularityObjectTrade.CurrentTick.High.Cmp(&testTrades[1].Price) != 0 {
 		t.Errorf("fail")
 	}
@@ -222,15 +223,15 @@ func TestGranulateStartFromTrade(t *testing.T) {
 
 	fmt.Println("new ticks", len(ticks))
 	fmt.Println("ticks[0]:")
-	printTick(ticks[0])
+	util.PrintTick(&ticks[0])
 	fmt.Println("ticks[10]:")
-	printTick(ticks[10])
+	util.PrintTick(&ticks[10])
 	fmt.Println("ticks[20]:")
-	printTick(ticks[20])
+	util.PrintTick(&ticks[20])
 	fmt.Println("ticks[32]:")
-	printTick(ticks[32])
+	util.PrintTick(&ticks[32])
 	fmt.Println("CurrentTick")
-	printTick(granularityObjectTrade.CurrentTick)
+	util.PrintTick(&granularityObjectTrade.CurrentTick)
 
 	// add forth trade
 	ticks = trade.Granulate(testTrades[4], &granularityObjectTrade)
@@ -287,15 +288,15 @@ func TestGranulateStartFromTrade(t *testing.T) {
 
 	fmt.Println("new ticks", len(ticks))
 	fmt.Println("ticks[0]:")
-	printTick(ticks[0])
+	util.PrintTick(&ticks[0])
 	fmt.Println("ticks[10]:")
-	printTick(ticks[10])
+	util.PrintTick(&ticks[10])
 	fmt.Println("ticks[20]:")
-	printTick(ticks[20])
+	util.PrintTick(&ticks[20])
 	fmt.Println("ticks[299]:")
-	printTick(ticks[299])
+	util.PrintTick(&ticks[299])
 	fmt.Println("CurrentTick")
-	printTick(granularityObjectTrade.CurrentTick)
+	util.PrintTick(&granularityObjectTrade.CurrentTick)
 }
 
 func TestGranulateStartFromTick(t *testing.T) {
@@ -305,8 +306,6 @@ func TestGranulateStartFromTick(t *testing.T) {
 	if len(ticks) == 0 {
 		t.Errorf("fail")
 	}
-
-  println("!!!!!", len(ticks))
 
 	if granularityObjectTick.CurrentTick.Close.Cmp(&testTrades[3].Price) != 0 {
 		t.Errorf("fail")
@@ -361,15 +360,15 @@ func TestGranulateStartFromTick(t *testing.T) {
 
 	fmt.Println("new ticks", len(ticks))
 	fmt.Println("ticks[0]:")
-	printTick(ticks[0])
+	util.PrintTick(&ticks[0])
 	fmt.Println("ticks[10]:")
-	printTick(ticks[10])
+	util.PrintTick(&ticks[10])
 	fmt.Println("ticks[20]:")
-	printTick(ticks[20])
+	util.PrintTick(&ticks[20])
 	fmt.Println("ticks[31]:")
-	printTick(ticks[31])
+	util.PrintTick(&ticks[31])
 	fmt.Println("CurrentTick")
-	printTick(granularityObjectTick.CurrentTick)
+	util.PrintTick(&granularityObjectTick.CurrentTick)
 
 	// add forth trade
 	ticks = trade.Granulate(testTrades[4], &granularityObjectTick)
@@ -426,27 +425,13 @@ func TestGranulateStartFromTick(t *testing.T) {
 
 	fmt.Println("new ticks", len(ticks))
 	fmt.Println("ticks[0]:")
-	printTick(ticks[0])
+	util.PrintTick(&ticks[0])
 	fmt.Println("ticks[10]:")
-	printTick(ticks[10])
+	util.PrintTick(&ticks[10])
 	fmt.Println("ticks[20]:")
-	printTick(ticks[20])
+	util.PrintTick(&ticks[20])
 	fmt.Println("ticks[299]:")
-	printTick(ticks[299])
+	util.PrintTick(&ticks[299])
 	fmt.Println("CurrentTick")
-	printTick(granularityObjectTick.CurrentTick)
-}
-
-
-
-func printTick(tick *trade.Tick) {
-	fmt.Println("{")
-	fmt.Println("   Open: ", tick.Open.String())
-	fmt.Println("   Close: ", tick.Close.String())
-	fmt.Println("   High: ", tick.High.String())
-	fmt.Println("   Low: ", tick.Low.String())
-	fmt.Println("   Volume: ", tick.Volume.String())
-	fmt.Println("   LastOriginID: ", tick.LastOriginID)
-	fmt.Println("   TickEndTime: ", tick.TickEndTime)
-	fmt.Println("},")
+	util.PrintTick(&granularityObjectTick.CurrentTick)
 }

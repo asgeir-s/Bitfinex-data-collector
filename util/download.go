@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 	"math/big"
-	""
 )
 
 // DownloadIfModifiedSince file from url to fileName

@@ -9,17 +9,17 @@ import (
 type Granularity struct {
 	Interval    int64
 	TableName   string
-	CurrentTick *Tick
+	CurrentTick Tick
 }
 
 // Granulate trade into granularity and returns new Tick if therie is a new Tick
-func Granulate(trade Trade, granularity *Granularity) []*Tick {
-	newTicks := []*Tick{}
+func Granulate(trade Trade, granularity *Granularity) []Tick {
+	newTicks := []Tick{}
 	if trade.OriginID > granularity.CurrentTick.LastOriginID {
 		for trade.TradeTime > granularity.CurrentTick.TickEndTime {
 			// add tick to return table
 			newTicks = append(newTicks, granularity.CurrentTick)
-			granularity.CurrentTick = &Tick{
+			granularity.CurrentTick = Tick{
 				Open:         granularity.CurrentTick.Close,
 				Close:        granularity.CurrentTick.Close,
 				High:         granularity.CurrentTick.Close,
@@ -30,7 +30,7 @@ func Granulate(trade Trade, granularity *Granularity) []*Tick {
 			}
 		}
 		if granularity.CurrentTick.Volume.Cmp(big.NewFloat(0)) == 0 {
-			granularity.CurrentTick = &Tick{
+			granularity.CurrentTick = Tick{
 				Open:         trade.Price,
 				Close:        trade.Price,
 				High:         trade.Price,
@@ -40,7 +40,7 @@ func Granulate(trade Trade, granularity *Granularity) []*Tick {
 				TickEndTime:  granularity.CurrentTick.TickEndTime,
 			}
 		} else {
-			addTradeToTick(trade, granularity.CurrentTick)
+			addTradeToTick(trade, &granularity.CurrentTick)
 		}
 	}
 	return newTicks
@@ -51,7 +51,7 @@ func InitializeGranularityFromTick(lastTick Tick, tableName string, interval int
 	return Granularity{
 		Interval:  interval,
 		TableName: tableName,
-		CurrentTick: &Tick{
+		CurrentTick: Tick{
 			Open:         lastTick.Close,
 			Close:        lastTick.Close,
 			High:         lastTick.Close,
@@ -69,7 +69,7 @@ func InitializeGranularityFromTrade(trade Trade, tableName string, interval int6
 	return Granularity{
 		Interval:  interval,
 		TableName: tableName,
-		CurrentTick: &Tick{
+		CurrentTick: Tick{
 			Open:         trade.Price,
 			Close:        trade.Price,
 			High:         trade.Price,
