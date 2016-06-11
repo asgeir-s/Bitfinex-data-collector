@@ -22,7 +22,7 @@ type databaseConfig struct {
 }
 
 func main() {
-	granularitiInterval := []int{1800} //1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400
+	granularitiInterval := []int{1800, 3600} //1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400
 
 	dbConfig := databaseConfig{}
 	env.Parse(&dbConfig)
@@ -93,16 +93,10 @@ func main() {
 	}
 	granularities := trade.InitializeGranularities(granularitiInterval, lastTicks, tradesThatNeedGranulating[0])
 
-	for _, granulaity := range granularities {
-		util.PrintTick(&granulaity.CurrentTick)
-	}
-
 	granulateTrades := func(thisTrades []trade.Trade) {
 		for _, thisTrade := range thisTrades {
-			fmt.Printf("this trade originID: %v", thisTrade.OriginID)
 			for _, interval := range granularitiInterval {
-				ticks, updatedGranularity := trade.Granulate(thisTrade, granularities[interval])
-				granularities[interval] = updatedGranularity
+				ticks := trade.Granulate(thisTrade, granularities[interval])
 				database.InsertTicks(db, granularities[interval].TableName, ticks)
 			}
 		}

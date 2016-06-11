@@ -1,7 +1,6 @@
 package trade
 
 import (
-	"fmt"
 	"math/big"
 	"strconv"
 )
@@ -15,13 +14,11 @@ type Granularity struct {
 }
 
 // Granulate trade into granularity and returns new Tick if therie is a new Tick
-func Granulate(trade Trade, granularity Granularity) ([]Tick, Granularity) {
+func Granulate(trade Trade, granularity *Granularity) []Tick {
 	newTicks := []Tick{}
-	fmt.Printf("trade.TradeTime: %v, TickEndTime: %v\n", trade.TradeTime, granularity.CurrentTick.TickEndTime)
 
 	if trade.OriginID > granularity.CurrentTick.LastOriginID {
 		for trade.TradeTime > granularity.CurrentTick.TickEndTime {
-			fmt.Println("0999")
 			// add tick to return table
 			newTicks = append(newTicks, granularity.CurrentTick)
 			granularity.CurrentTick = Tick{
@@ -46,16 +43,14 @@ func Granulate(trade Trade, granularity Granularity) ([]Tick, Granularity) {
 			}
 		} else {
 			addTradeToGranularity(trade, &granularity.CurrentTick)
-			fmt.Printf("CurrentTick: LastOriginID: %v \n", &granularity.CurrentTick.LastOriginID)
-
 		}
 	}
-	return newTicks, granularity
+	return newTicks
 }
 
 // InitializeGranularityFromTick should be used when continuing building a already started Tick-table
-func InitializeGranularityFromTick(lastTick Tick, tableName string, interval int64) Granularity {
-	return Granularity{
+func InitializeGranularityFromTick(lastTick Tick, tableName string, interval int64) *Granularity {
+	return &Granularity{
 		Interval:  interval,
 		TableName: tableName,
 		CurrentTick: Tick{
@@ -72,8 +67,8 @@ func InitializeGranularityFromTick(lastTick Tick, tableName string, interval int
 
 // InitializeGranularityFromTrade should only be used when creating the first tick
 // if theire already is Ticks in the table use 'InitializeGranularityFromTick'
-func InitializeGranularityFromTrade(trade Trade, tableName string, interval int64) Granularity {
-	return Granularity{
+func InitializeGranularityFromTrade(trade Trade, tableName string, interval int64) *Granularity {
+	return &Granularity{
 		Interval:  interval,
 		TableName: tableName,
 		CurrentTick: Tick{
@@ -89,7 +84,6 @@ func InitializeGranularityFromTrade(trade Trade, tableName string, interval int6
 }
 
 func addTradeToGranularity(trade Trade, tick *Tick) {
-	fmt.Printf("addTradeToGranularity: LastOriginID: %v , trade OriginID: %v \n", tick.LastOriginID, trade.OriginID)
 	tick.LastOriginID = trade.OriginID
 	if trade.Price.Cmp(&tick.High) > 0 {
 		tick.High = trade.Price
@@ -101,9 +95,8 @@ func addTradeToGranularity(trade Trade, tick *Tick) {
 }
 
 // InitializeGranularities re-initializes alreadt started granularities and initializes new granularities
-func InitializeGranularities(intervalls []int, lastTicks map[int]Tick, oldestProsesedTrade Trade) map[int]Granularity {
-	granularityMap := make(map[int]Granularity)
-	fmt.Printf("oldestProsesedTrade originID: %v", oldestProsesedTrade.OriginID)
+func InitializeGranularities(intervalls []int, lastTicks map[int]Tick, oldestProsesedTrade Trade) map[int]*Granularity {
+	granularityMap := make(map[int]*Granularity)
 
 	for _, value := range intervalls {
 		tick, exists := lastTicks[value]

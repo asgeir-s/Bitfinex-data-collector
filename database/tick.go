@@ -3,7 +3,6 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"math/big"
 	"strconv"
 
@@ -32,13 +31,9 @@ func CreateTickTablesForIntervalls(db *sql.DB, intervalls []int) (string, error)
 }
 
 func InsertTicks(db *sql.DB, tableName string, ticks []trade.Tick) (string, error) {
-
-	fmt.Printf("ticks length: %v\n", len(ticks))
-
 	if len(ticks) == 0 {
 		return "NO TICKS", nil
 	}
-		fmt.Printf("ticks first LastOriginID: %v\n", ticks[0].LastOriginID)
 
 	sqlStr := "INSERT INTO " + tableName + " (open, close, high, low, volume, last_origin_id, tick_end_time) VALUES "
 
@@ -53,7 +48,6 @@ func InsertTicks(db *sql.DB, tableName string, ticks []trade.Tick) (string, erro
 	_, err := db.Exec(sqlStr)
 	if err != nil {
 		fmt.Println("addTrade: could not write the ticks to the database")
-		log.Println(err)
 		return "", err
 	}
 	return "OK", nil
