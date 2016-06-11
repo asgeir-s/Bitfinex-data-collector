@@ -4,13 +4,14 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"math/big"
 	"strconv"
 
 	"github.com/cluda/btcdata/trade"
 	_ "github.com/lib/pq"
 )
 
-func CreateTickTables(db *sql.DB, intervalls []int) (string, error) {
+func CreateTickTablesForIntervalls(db *sql.DB, intervalls []int) (string, error) {
 	for _, value := range intervalls {
 		_, err := db.Exec("CREATE TABLE IF NOT EXISTS bitfinex_tick_" + strconv.Itoa(value) + ` (
   id serial primary key,
@@ -51,4 +52,44 @@ func InsertTicks(db *sql.DB, tableName string, ticks []trade.Tick) (string, erro
 		return "", err
 	}
 	return "OK", nil
+}
+
+// GetLastTickIfAnyForIntervalls returns a map with last tick in the database for the intervalls
+// if a intervall has no ticks 
+func GetLastTickIfAnyForIntervalls(db *sql.DB, intervalls []int) map[int]trade.Tick {
+	tickMap := make(map[int]trade.Tick)
+
+	var (
+		openStr      string
+		closeStr     string
+		highStr      string
+		lowStr       string
+		volumeStr    string
+		lastOriginID int64
+		tickEndTime  int64
+	)
+
+	for _, interval := range intervalls {
+		err := db.QueryRow("SELECT open, close, high, low, volume, last_origin_id, tick_end_time from bitfinex_tick_"+strconv.Itoa(interval)+" order by last_origin_id desc limit 1").Scan(&openStr, &closeStr, &highStr, &lowStr, &volumeStr, &lastOriginID, &tickEndTime)
+		if err != nil {
+			fmt.Printf("no last tick for %v interval. Continues to next. \n", interval)
+		} else {
+			open, _ := new(big.Float).SetString(openStr)
+			close, _ := new(big.Float).SetString(closeStr)
+			high, _ := new(big.Float).SetString(highStr)
+			low, _ := new(big.Float).SetString(lowStr)
+			volume, _ := new(big.Float).SetString(volumeStr)
+
+			tickMap[interval] = trade.Tick{
+				Open:         *open,
+				Close:        *close,
+				High:         *high,
+				Low:          *low,
+				Volume:       *volume,
+				LastOriginID: lastOriginID,
+				TickEndTime:  tickEndTime,
+			}
+		}
+	}
+	return tickMap
 }

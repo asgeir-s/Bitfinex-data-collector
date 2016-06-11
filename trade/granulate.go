@@ -1,6 +1,7 @@
 package trade
 
 import (
+	"strconv"
 	"math/big"
 )
 
@@ -90,4 +91,19 @@ func addTradeToTick(trade Trade, tick *Tick) {
 	}
 	tick.Volume.Add(&tick.Volume, &trade.Amount)
 	tick.Close = trade.Price
+}
+
+// InitializeGranularities re-initializes alreadt started granularities and initializes new granularities
+func InitializeGranularities(intervalls []int, lastTicks map[int]Tick, oldestProsesedTrade Trade) map[int]Granularity {
+	granularityMap := make(map[int]Granularity)
+
+	for _, value := range intervalls {
+		tick, exists := lastTicks[value]
+		if !exists {
+			granularityMap[value] = InitializeGranularityFromTrade(oldestProsesedTrade, "bitfinex_tick_"+strconv.Itoa(value), int64(value))
+		} else {
+			granularityMap[value] = InitializeGranularityFromTick(tick, "bitfinex_tick_"+strconv.Itoa(value), int64(value))
+		}
+	}
+	return granularityMap
 }
