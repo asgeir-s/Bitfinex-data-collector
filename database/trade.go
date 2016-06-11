@@ -28,6 +28,7 @@ func CreateTradeTableIfNotExcists(db *sql.DB) (string, error) {
 }
 
 // GetTrades returns trads afther 'afterOriginID'
+// the first trade is the oldest and the last is the newest
 func GetTrades(db *sql.DB, afterOriginID int64) ([]trade.Trade, error) {
 	//fmt.Println("strconv.FormatInt(afterOriginID, 10):", )
 
@@ -70,6 +71,7 @@ func GetTrades(db *sql.DB, afterOriginID int64) ([]trade.Trade, error) {
 		fmt.Println("ERROR: getTradesAfter failed on rows.Err()")
 		return nil, err
 	}
+  fmt.Printf("first: %v, last: %v", trades[0].OriginID, trades[len(trades)-1].OriginID)
 	return trades, nil
 }
 
@@ -91,7 +93,7 @@ func GetFirstTradeAfther(db *sql.DB, originID int64) (trade.Trade, error) {
 	return thisTrade, nil
 }
 
-// GetFirstOldest will return the first trade in the trade table
+// GetOldestTrade will return the first trade in the trade table
 func GetOldestTrade(db *sql.DB) (trade.Trade, error) {
 	var thisTrade = trade.Trade{}
 	var priceStr string
@@ -127,14 +129,13 @@ func GetNewestTrade(db *sql.DB) (trade.Trade, error) {
 	return thisTrade, nil
 }
 
-
-
 // InsertTrades will insert the trades and return a string
+// the trades table should have the newest trade first and the oldest trade last
 func InsertTrades(db *sql.DB, trades []trade.Trade) (string, error) {
 	if len(trades) > 0 {
 		sqlStr := "INSERT INTO bitfinex_trade (origin_id, trade_time, price, amount, trade_type) VALUES "
 
-		for i := 0; i <= len(trades)-1; i++ {
+		for i := len(trades) - 1; i >= 0; i-- {
 			sqlStr += "(" + strconv.FormatInt(trades[i].OriginID, 10) + ", " + strconv.FormatInt(trades[i].TradeTime, 10) + ", " + trades[i].Price.String() + ", " + trades[i].Amount.String() + ", '" + trades[i].Type + "'),"
 		}
 
@@ -145,9 +146,9 @@ func InsertTrades(db *sql.DB, trades []trade.Trade) (string, error) {
 		_, err := db.Exec(sqlStr)
 		if err != nil {
 			fmt.Println("could not write th trades to the database")
-      return "", err
+			return "", err
 		}
-    return "OK", nil
+		return "OK", nil
 	}
 
 	return "OK", nil

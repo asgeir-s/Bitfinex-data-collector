@@ -1,8 +1,9 @@
 package trade
 
 import (
-	"strconv"
+	"fmt"
 	"math/big"
+	"strconv"
 )
 
 // Granularity is a helper object for building Tick for a spesific granularity
@@ -14,10 +15,13 @@ type Granularity struct {
 }
 
 // Granulate trade into granularity and returns new Tick if therie is a new Tick
-func Granulate(trade Trade, granularity *Granularity) []Tick {
+func Granulate(trade Trade, granularity Granularity) ([]Tick, Granularity) {
 	newTicks := []Tick{}
+	fmt.Printf("trade.TradeTime: %v, TickEndTime: %v\n", trade.TradeTime, granularity.CurrentTick.TickEndTime)
+
 	if trade.OriginID > granularity.CurrentTick.LastOriginID {
 		for trade.TradeTime > granularity.CurrentTick.TickEndTime {
+			fmt.Println("0999")
 			// add tick to return table
 			newTicks = append(newTicks, granularity.CurrentTick)
 			granularity.CurrentTick = Tick{
@@ -41,10 +45,12 @@ func Granulate(trade Trade, granularity *Granularity) []Tick {
 				TickEndTime:  granularity.CurrentTick.TickEndTime,
 			}
 		} else {
-			addTradeToTick(trade, &granularity.CurrentTick)
+			addTradeToGranularity(trade, &granularity.CurrentTick)
+			fmt.Printf("CurrentTick: LastOriginID: %v \n", &granularity.CurrentTick.LastOriginID)
+
 		}
 	}
-	return newTicks
+	return newTicks, granularity
 }
 
 // InitializeGranularityFromTick should be used when continuing building a already started Tick-table
@@ -82,7 +88,8 @@ func InitializeGranularityFromTrade(trade Trade, tableName string, interval int6
 	}
 }
 
-func addTradeToTick(trade Trade, tick *Tick) {
+func addTradeToGranularity(trade Trade, tick *Tick) {
+	fmt.Printf("addTradeToGranularity: LastOriginID: %v , trade OriginID: %v \n", tick.LastOriginID, trade.OriginID)
 	tick.LastOriginID = trade.OriginID
 	if trade.Price.Cmp(&tick.High) > 0 {
 		tick.High = trade.Price
@@ -96,6 +103,7 @@ func addTradeToTick(trade Trade, tick *Tick) {
 // InitializeGranularities re-initializes alreadt started granularities and initializes new granularities
 func InitializeGranularities(intervalls []int, lastTicks map[int]Tick, oldestProsesedTrade Trade) map[int]Granularity {
 	granularityMap := make(map[int]Granularity)
+	fmt.Printf("oldestProsesedTrade originID: %v", oldestProsesedTrade.OriginID)
 
 	for _, value := range intervalls {
 		tick, exists := lastTicks[value]

@@ -32,9 +32,14 @@ func CreateTickTablesForIntervalls(db *sql.DB, intervalls []int) (string, error)
 }
 
 func InsertTicks(db *sql.DB, tableName string, ticks []trade.Tick) (string, error) {
+
+	fmt.Printf("ticks length: %v\n", len(ticks))
+
 	if len(ticks) == 0 {
 		return "NO TICKS", nil
 	}
+		fmt.Printf("ticks first LastOriginID: %v\n", ticks[0].LastOriginID)
+
 	sqlStr := "INSERT INTO " + tableName + " (open, close, high, low, volume, last_origin_id, tick_end_time) VALUES "
 
 	for i := len(ticks) - 1; i >= 0; i-- {
