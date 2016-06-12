@@ -1,7 +1,6 @@
 package trade
 
 import (
-	"math/big"
 	"strconv"
 )
 
@@ -26,12 +25,12 @@ func Granulate(trade Trade, granularity *Granularity) []Tick {
 				Close:        granularity.CurrentTick.Close,
 				High:         granularity.CurrentTick.Close,
 				Low:          granularity.CurrentTick.Close,
-				Volume:       *new(big.Float),
+				Volume:       0,
 				LastOriginID: granularity.CurrentTick.LastOriginID,
 				TickEndTime:  granularity.CurrentTick.TickEndTime + granularity.Interval,
 			}
 		}
-		if granularity.CurrentTick.Volume.Cmp(big.NewFloat(0)) == 0 {
+		if granularity.CurrentTick.Volume == 0 {
 			granularity.CurrentTick = Tick{
 				Open:         trade.Price,
 				Close:        trade.Price,
@@ -58,7 +57,7 @@ func InitializeGranularityFromTick(lastTick Tick, tableName string, interval int
 			Close:        lastTick.Close,
 			High:         lastTick.Close,
 			Low:          lastTick.Close,
-			Volume:       *new(big.Float),
+			Volume:       0,
 			LastOriginID: lastTick.LastOriginID,
 			TickEndTime:  lastTick.TickEndTime + interval,
 		},
@@ -85,12 +84,12 @@ func InitializeGranularityFromTrade(trade Trade, tableName string, interval int6
 
 func addTradeToGranularity(trade Trade, tick *Tick) {
 	tick.LastOriginID = trade.OriginID
-	if trade.Price.Cmp(&tick.High) > 0 {
+	if trade.Price > tick.High {
 		tick.High = trade.Price
-	} else if trade.Price.Cmp(&tick.Low) < 0 {
+	} else if trade.Price < tick.Low {
 		tick.Low = trade.Price
 	}
-	tick.Volume.Add(&tick.Volume, &trade.Amount)
+	tick.Volume += trade.Amount
 	tick.Close = trade.Price
 }
 

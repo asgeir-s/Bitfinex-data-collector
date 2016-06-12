@@ -3,8 +3,8 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"math/big"
 	"strconv"
+	"github.com/cluda/btcdata/util"
 
 	"github.com/cluda/btcdata/trade"
 	_ "github.com/lib/pq"
@@ -38,8 +38,8 @@ func GetTrades(db *sql.DB, afterOriginID int64) ([]trade.Trade, error) {
 		id        int64
 		originID  int64
 		tradeTime int64
-		priceStr  string
-		amountStr string
+		price     float64
+		amount    float64
 		typeTrade string
 	)
 
@@ -50,19 +50,17 @@ func GetTrades(db *sql.DB, afterOriginID int64) ([]trade.Trade, error) {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		err := rows.Scan(&id, &originID, &tradeTime, &priceStr, &amountStr, &typeTrade)
+		err := rows.Scan(&id, &originID, &tradeTime, &price, &amount, &typeTrade)
 		if err != nil {
 			fmt.Println("ERROR: getTradesAfter failed on rows.Next()")
 			return nil, err
 		}
-		price, _ := new(big.Float).SetString(priceStr)
-		amount, _ := new(big.Float).SetString(amountStr)
 		trades = append(trades, trade.Trade{
 			ID:        id,
 			OriginID:  originID,
 			TradeTime: tradeTime,
-			Price:     *price,
-			Amount:    *amount,
+			Price:     price,
+			Amount:    amount,
 			Type:      typeTrade,
 		})
 	}
@@ -71,61 +69,39 @@ func GetTrades(db *sql.DB, afterOriginID int64) ([]trade.Trade, error) {
 		fmt.Println("ERROR: getTradesAfter failed on rows.Err()")
 		return nil, err
 	}
-  fmt.Printf("first: %v, last: %v", trades[0].OriginID, trades[len(trades)-1].OriginID)
 	return trades, nil
 }
 
 // GetFirstTradeAfther returns the first trade that has a originID higher then this
 func GetFirstTradeAfther(db *sql.DB, originID int64) (trade.Trade, error) {
 	var thisTrade = trade.Trade{}
-	var priceStr string
-	var amountStr string
-	err := db.QueryRow("SELECT id, origin_id, trade_time, price, amount, trade_type from bitfinex_trade WHERE origin_id > "+strconv.FormatInt(originID, 10)+" order by origin_id limit 1").Scan(&thisTrade.ID, &thisTrade.OriginID, &thisTrade.TradeTime, &priceStr, &amountStr, &thisTrade.Type)
+	err := db.QueryRow("SELECT id, origin_id, trade_time, price, amount, trade_type from bitfinex_trade WHERE origin_id > "+strconv.FormatInt(originID, 10)+" order by origin_id limit 1").Scan(&thisTrade.ID, &thisTrade.OriginID, &thisTrade.TradeTime, &thisTrade.Price, &thisTrade.Amount, &thisTrade.Type)
 	if err != nil {
 		fmt.Printf("could not get trade after %v\n", originID)
 		return thisTrade, err
 	}
-	price, _ := new(big.Float).SetString(priceStr)
-	amount, _ := new(big.Float).SetString(amountStr)
-
-	thisTrade.Price = *price
-	thisTrade.Amount = *amount
 	return thisTrade, nil
 }
 
 // GetOldestTrade will return the first trade in the trade table
 func GetOldestTrade(db *sql.DB) (trade.Trade, error) {
 	var thisTrade = trade.Trade{}
-	var priceStr string
-	var amountStr string
-	err := db.QueryRow("SELECT id, origin_id, trade_time, price, amount, trade_type from bitfinex_trade order by origin_id limit 1").Scan(&thisTrade.ID, &thisTrade.OriginID, &thisTrade.TradeTime, &priceStr, &amountStr, &thisTrade.Type)
+	err := db.QueryRow("SELECT id, origin_id, trade_time, price, amount, trade_type from bitfinex_trade order by origin_id limit 1").Scan(&thisTrade.ID, &thisTrade.OriginID, &thisTrade.TradeTime, &thisTrade.Price, &thisTrade.Amount, &thisTrade.Type)
 	if err != nil {
 		fmt.Println("could not get the first trade from the trade table")
 		return thisTrade, err
 	}
-	price, _ := new(big.Float).SetString(priceStr)
-	amount, _ := new(big.Float).SetString(amountStr)
-
-	thisTrade.Price = *price
-	thisTrade.Amount = *amount
 	return thisTrade, nil
 }
 
 // GetFirstNewest will return the first trade in the trade table
 func GetNewestTrade(db *sql.DB) (trade.Trade, error) {
 	var thisTrade = trade.Trade{}
-	var priceStr string
-	var amountStr string
-	err := db.QueryRow("SELECT id, origin_id, trade_time, price, amount, trade_type from bitfinex_trade order by origin_id desc limit 1").Scan(&thisTrade.ID, &thisTrade.OriginID, &thisTrade.TradeTime, &priceStr, &amountStr, &thisTrade.Type)
+	err := db.QueryRow("SELECT id, origin_id, trade_time, price, amount, trade_type from bitfinex_trade order by origin_id desc limit 1").Scan(&thisTrade.ID, &thisTrade.OriginID, &thisTrade.TradeTime, &thisTrade.Price, &thisTrade.Amount, &thisTrade.Type)
 	if err != nil {
 		fmt.Println("could not get the first trade from the trade table")
 		return thisTrade, err
 	}
-	price, _ := new(big.Float).SetString(priceStr)
-	amount, _ := new(big.Float).SetString(amountStr)
-
-	thisTrade.Price = *price
-	thisTrade.Amount = *amount
 	return thisTrade, nil
 }
 
@@ -136,7 +112,7 @@ func InsertTrades(db *sql.DB, trades []trade.Trade) (string, error) {
 		sqlStr := "INSERT INTO bitfinex_trade (origin_id, trade_time, price, amount, trade_type) VALUES "
 
 		for i := len(trades) - 1; i >= 0; i-- {
-			sqlStr += "(" + strconv.FormatInt(trades[i].OriginID, 10) + ", " + strconv.FormatInt(trades[i].TradeTime, 10) + ", " + trades[i].Price.String() + ", " + trades[i].Amount.String() + ", '" + trades[i].Type + "'),"
+			sqlStr += "(" + strconv.FormatInt(trades[i].OriginID, 10) + ", " + strconv.FormatInt(trades[i].TradeTime, 10) + ", " + util.PriceToString(trades[i].Price) + ", " + util.AmountToString(trades[i].Amount) + ", '" + trades[i].Type + "'),"
 		}
 
 		//trim the last ,

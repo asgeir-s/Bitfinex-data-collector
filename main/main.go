@@ -62,11 +62,11 @@ func main() {
 	}
 	println("time of the newest trade in the trade table is", newestTradeTime)
 
-	client := bitfinex.NewClient()
-	bfxTrades, err := client.Trades.All("btcusd", newestTradeTime+1, 0)
+	bfxClient := bitfinex.NewClient()
+	bfxTrades, err := bfxClient.Trades.All("btcusd", newestTradeTime+1, 0)
 	if err != nil {
 		fmt.Println("could not get trades from the bitfinex rest api. Will retry.")
-		bfxTrades, err = client.Trades.All("btcusd", newestTradeTime+1, 0)
+		bfxTrades, err = bfxClient.Trades.All("btcusd", newestTradeTime+1, 0)
 		if err != nil {
 			fmt.Println("could not get trades from the bitfinex rest api. Failed on retry.")
 			log.Fatal(err)
@@ -102,6 +102,37 @@ func main() {
 		}
 	}
 	granulateTrades(tradesThatNeedGranulating)
+
+	// Create new connection
+	err = bfxClient.WebSocket.Connect()
+	if err != nil {
+		log.Fatal("Error connecting to web socket")
+	}
+	defer bfxClient.WebSocket.Close()
+
+	tradesChan := make(chan []float64)
+
+	bfxClient.WebSocket.AddSubscribe(bitfinex.CHAN_TRADE, bitfinex.BTCUSD, tradesChan)
+	go bfxClient.WebSocket.Subscribe()
+
+	// after api client successfully connect to remote web socket
+	// channel will reveive current payload as separate messages.
+	// each channel will receive order book updates: [price, count, ±amount]
+	for {
+		select {
+		case tradeMsg := <-tradesChan:
+			thisTrade := []trade.Trade{util.BitfinexWSTradeArrayToTrade(tradeMsg)}
+			// add to tick table
+			_, err = database.InsertTrades(db, thisTrade)
+			if err != nil {
+				log.Fatalln("could not add this trade to the trade table. Error: ", err.Error())
+			}
+			// granulate
+			granulateTrades(thisTrade)
+			log.Printf("%#v\n", thisTrade[0])
+		}
+	}
+
 }
 
 func getOldestOriginID(intervalls []int, ticks map[int]trade.Tick) int64 {
