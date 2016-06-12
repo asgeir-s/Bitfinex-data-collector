@@ -22,8 +22,8 @@ type databaseConfig struct {
 }
 
 func main() {
-	granularitiInterval := []int{1800, 3600} //1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400
-
+	granularitiInterval := []int{1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400} //1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400
+	bfxClient := bitfinex.NewClient()
 	dbConfig := databaseConfig{}
 	env.Parse(&dbConfig)
 
@@ -35,63 +35,34 @@ func main() {
 			" port="+dbConfig.Port+
 			" sslmode=disable")
 	if err != nil {
-		fmt.Println("could not connect to the databse")
-		log.Fatal(err)
+		log.Fatal("could not connect to the databse. Error: " + err.Error())
 	}
 	defer db.Close()
 
 	// create table if not exists
 	_, err = database.CreateTradeTableIfNotExcists(db)
 	if err != nil {
-		fmt.Println("could not create table")
-		log.Fatal(err)
+		log.Fatal("could not create table. Error:" + err.Error())
 	}
 	_, err = database.CreateTickTablesForIntervalls(db, granularitiInterval)
 	if err != nil {
-		fmt.Println("could not create granularitie-tables")
-		log.Fatal(err)
+		log.Fatal("could not create granularitie-tables. Error: " + err.Error())
 	}
 
-	// get new trades
-	var newestTradeTime int64
-	newestTrade, err := database.GetNewestTrade(db)
+	_, err = getNewTradesAndInsertToTable(db, bfxClient)
 	if err != nil {
-		fmt.Println("could not get newest trade from trade table. newestTradeTime is 0 ")
-	} else {
-		newestTradeTime = newestTrade.TradeTime
+		log.Fatal("could not get new trades and insert to table. Error: " + err.Error())
 	}
-	println("time of the newest trade in the trade table is", newestTradeTime)
 
-	bfxClient := bitfinex.NewClient()
-	bfxTrades, err := bfxClient.Trades.All("btcusd", newestTradeTime+1, 0)
+	newestTicks := database.GetNewestTickIfAnyForIntervalls(db, granularitiInterval)
+	oldestOriginIDFromTick := getOldestOriginID(granularitiInterval, newestTicks)
+	log.Println("oldestOriginIDFromTick", oldestOriginIDFromTick)
+
+	tradesThatNeedGranulating, err := database.GetTrades(db, oldestOriginIDFromTick)
 	if err != nil {
-		fmt.Println("could not get trades from the bitfinex rest api. Will retry.")
-		bfxTrades, err = bfxClient.Trades.All("btcusd", newestTradeTime+1, 0)
-		if err != nil {
-			fmt.Println("could not get trades from the bitfinex rest api. Failed on retry.")
-			log.Fatal(err)
-		}
+		log.Fatal("could not create granularitie-tables. Error: " + err.Error())
 	}
-
-	newTrades := util.BitfinexTradetoTrade(bfxTrades)
-	fmt.Println("got", len(newTrades), "new trades from bitfinex")
-
-	_, err = database.InsertTrades(db, newTrades)
-	if err != nil {
-		fmt.Println("could not get insert trades to the trade table")
-		log.Fatal(err)
-	}
-
-	lastTicks := database.GetLastTickIfAnyForIntervalls(db, granularitiInterval)
-	oldestTickOriginID := getOldestOriginID(granularitiInterval, lastTicks)
-	fmt.Println("oldestTickOriginId", oldestTickOriginID)
-
-	tradesThatNeedGranulating, err := database.GetTrades(db, oldestTickOriginID)
-	if err != nil {
-		fmt.Println("could not create granularitie-tables")
-		log.Fatal(err)
-	}
-	granularities := trade.InitializeGranularities(granularitiInterval, lastTicks, tradesThatNeedGranulating[0])
+	granularities := trade.InitializeGranularities(granularitiInterval, newestTicks, tradesThatNeedGranulating[0])
 
 	granulateTrades := func(thisTrades []trade.Trade) {
 		for _, thisTrade := range thisTrades {
@@ -106,30 +77,32 @@ func main() {
 	// Create new connection
 	err = bfxClient.WebSocket.Connect()
 	if err != nil {
-		log.Fatal("Error connecting to web socket")
+		log.Fatal("Error connecting to web socket. Error: " + err.Error())
 	}
 	defer bfxClient.WebSocket.Close()
 
 	tradesChan := make(chan []float64)
-
 	bfxClient.WebSocket.AddSubscribe(bitfinex.CHAN_TRADE, bitfinex.BTCUSD, tradesChan)
 	go bfxClient.WebSocket.Subscribe()
 
-	// after api client successfully connect to remote web socket
-	// channel will reveive current payload as separate messages.
-	// each channel will receive order book updates: [price, count, ±amount]
+	newestOriginID := tradesThatNeedGranulating[len(tradesThatNeedGranulating)-1].OriginID
 	for {
 		select {
 		case tradeMsg := <-tradesChan:
 			thisTrade := []trade.Trade{util.BitfinexWSTradeArrayToTrade(tradeMsg)}
-			// add to tick table
-			_, err = database.InsertTrades(db, thisTrade)
-			if err != nil {
-				log.Fatalln("could not add this trade to the trade table. Error: ", err.Error())
+			if thisTrade[0].OriginID > newestOriginID {
+				// add to tick table
+				_, err = database.InsertTrades(db, thisTrade)
+				if err != nil {
+					log.Fatal("could not add this trade to the trade table. Error: ", err.Error())
+				}
+				// granulate
+				granulateTrades(thisTrade)
+				fmt.Printf(".")
+				newestOriginID = thisTrade[0].OriginID
+			} else {
+				log.Printf("ignores already prosessed. tradeID: %v, lastProsessedTradeID: %v", thisTrade[0].OriginID, newestOriginID)
 			}
-			// granulate
-			granulateTrades(thisTrade)
-			log.Printf("%#v\n", thisTrade[0])
 		}
 	}
 
@@ -148,4 +121,37 @@ func getOldestOriginID(intervalls []int, ticks map[int]trade.Tick) int64 {
 		}
 	}
 	return oldest
+}
+
+// returns the number of new trades
+func getNewTradesAndInsertToTable(db *sql.DB, bfxClient *bitfinex.Client) (int, error) {
+	// get new trades
+	var newestTradeTime int64
+	newestTrade, err := database.GetNewestTrade(db)
+	if err != nil {
+		log.Println("could not get newest trade from trade table. newestTradeTime is 0 ")
+	} else {
+		newestTradeTime = newestTrade.TradeTime
+	}
+	log.Println("time of the newest trade in the trade table is", newestTradeTime)
+
+	bfxTrades, err := bfxClient.Trades.All("btcusd", newestTradeTime+1, 0)
+	if err != nil {
+		log.Println("could not get trades from the bitfinex rest api. Will retry.")
+		bfxTrades, err = bfxClient.Trades.All("btcusd", newestTradeTime+1, 0)
+		if err != nil {
+			log.Println("could not get trades from the bitfinex rest api. Failed on retry.")
+			return 0, err
+		}
+	}
+
+	newTrades := util.BitfinexTradetoTrade(bfxTrades)
+
+	_, err = database.InsertTrades(db, newTrades)
+	if err != nil {
+		log.Println("could not get insert trades to the trade table")
+		return 0, err
+	}
+	log.Printf("new trades form Bitfinex(REST): %v\n", len(newTrades))
+	return len(newTrades), nil
 }

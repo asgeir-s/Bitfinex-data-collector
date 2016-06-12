@@ -54,9 +54,9 @@ func InsertTicks(db *sql.DB, tableName string, ticks []trade.Tick) (string, erro
 	return "OK", nil
 }
 
-// GetLastTickIfAnyForIntervalls returns a map with last tick in the database for the intervalls
+// GetNewestTickIfAnyForIntervalls returns a map with newest tick in the database for the intervalls
 // if a intervall has no ticks
-func GetLastTickIfAnyForIntervalls(db *sql.DB, intervalls []int) map[int]trade.Tick {
+func GetNewestTickIfAnyForIntervalls(db *sql.DB, intervalls []int) map[int]trade.Tick {
 	tickMap := make(map[int]trade.Tick)
 
 	var (
