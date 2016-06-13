@@ -43,7 +43,7 @@ func main() {
 	}
 
 	bfxClient := bitfinex.NewClient()
-	svc := sns.New(session.New(), aws.NewConfig().WithRegion("us-east-1"))
+	svc := sns.New(session.New(), aws.NewConfig().WithRegion("eu-central-1"))
 
 	db, err := sql.Open("postgres",
 		"host="+dbConfig.DbHost+
@@ -80,6 +80,7 @@ func main() {
 	if err != nil {
 		log.Fatal("could not create granularitie-tables. Error: " + err.Error())
 	}
+
 	granularities := trade.InitializeGranularities(granularitiInterval, newestTicks, tradesThatNeedGranulating[0])
 
 	granulateTrades := func(thisTrades []trade.Trade, live bool) {
