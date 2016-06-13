@@ -18,39 +18,39 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type databaseConfig struct {
-	Host    string `env:"DB_HOST" envDefault:"localhost"`
-	User    string `env:"DB_USER" envDefault:"testuser"`
-	Pasword string `env:"DB_PASSWORD" envDefault:"Password123"`
-	Name    string `env:"DB_NAME" envDefault:"timeseries"`
-	Port    string `env:"DB_PORT" envDefault:"5432"`
+type config struct {
+	DbHost    string `env:"DB_HOST" envDefault:"localhost"`
+	DbUser    string `env:"DB_USER" envDefault:"testuser"`
+	DbPasword string `env:"DB_PASSWORD" envDefault:"Password123"`
+	DbName    string `env:"DB_NAME" envDefault:"timeseries"`
+	DbPort    string `env:"DB_PORT" envDefault:"5432"`
 }
 
 func main() {
-	dbConfig := databaseConfig{}
+	dbConfig := config{}
 	env.Parse(&dbConfig)
 
 	granularitiInterval := []int{1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400} //1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400
 	snsTopicArn := map[int]string{
-		1800:  "arn:aws:sns:us-east-1:525932482084:bitfinex_tick_1800",
-		3600:  "arn:aws:sns:us-east-1:525932482084:bitfinex_tick_3600",
-		7200:  "arn:aws:sns:us-east-1:525932482084:bitfinex_tick_7200",
-		14400: "arn:aws:sns:us-east-1:525932482084:bitfinex_tick_14400",
-		21600: "arn:aws:sns:us-east-1:525932482084:bitfinex_tick_21600",
-		28800: "arn:aws:sns:us-east-1:525932482084:bitfinex_tick_28800",
-		43200: "arn:aws:sns:us-east-1:525932482084:bitfinex_tick_43200",
-		86400: "arn:aws:sns:us-east-1:525932482084:bitfinex_tick_86400",
+		1800:  "arn:aws:sns:eu-central-1:525932482084:bitfinex_tick_1800",
+		3600:  "arn:aws:sns:eu-central-1:525932482084:bitfinex_tick_3600",
+		7200:  "arn:aws:sns:eu-central-1:525932482084:bitfinex_tick_7200",
+		14400: "arn:aws:sns:eu-central-1:525932482084:bitfinex_tick_14400",
+		21600: "arn:aws:sns:eu-central-1:525932482084:bitfinex_tick_21600",
+		28800: "arn:aws:sns:eu-central-1:525932482084:bitfinex_tick_28800",
+		43200: "arn:aws:sns:eu-central-1:525932482084:bitfinex_tick_43200",
+		86400: "arn:aws:sns:eu-central-1:525932482084:bitfinex_tick_86400",
 	}
 
 	bfxClient := bitfinex.NewClient()
 	svc := sns.New(session.New(), aws.NewConfig().WithRegion("us-east-1"))
 
 	db, err := sql.Open("postgres",
-		"host="+dbConfig.Host+
-			" user="+dbConfig.User+
-			" password="+dbConfig.Pasword+
-			" dbname="+dbConfig.Name+
-			" port="+dbConfig.Port+
+		"host="+dbConfig.DbHost+
+			" user="+dbConfig.DbUser+
+			" password="+dbConfig.DbPasword+
+			" dbname="+dbConfig.DbName+
+			" port="+dbConfig.DbPort+
 			" sslmode=disable")
 	if err != nil {
 		log.Fatal("could not connect to the databse. Error: " + err.Error())
