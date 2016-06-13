@@ -5,11 +5,16 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/caarlos0/env"
 	"github.com/cluda/bitfinex-api-go"
+	"github.com/cluda/btcdata/awsutil"
 	"github.com/cluda/btcdata/database"
 	"github.com/cluda/btcdata/trade"
 	"github.com/cluda/btcdata/util"
+
 	_ "github.com/lib/pq"
 )
 
@@ -22,10 +27,23 @@ type databaseConfig struct {
 }
 
 func main() {
-	granularitiInterval := []int{1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400} //1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400
-	bfxClient := bitfinex.NewClient()
 	dbConfig := databaseConfig{}
 	env.Parse(&dbConfig)
+
+	granularitiInterval := []int{1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400} //1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400
+	snsTopicArn := map[int]string{
+		1800:  "arn:aws:sns:us-east-1:525932482084:bitfinex_tick_1800",
+		3600:  "arn:aws:sns:us-east-1:525932482084:bitfinex_tick_3600",
+		7200:  "arn:aws:sns:us-east-1:525932482084:bitfinex_tick_7200",
+		14400: "arn:aws:sns:us-east-1:525932482084:bitfinex_tick_14400",
+		21600: "arn:aws:sns:us-east-1:525932482084:bitfinex_tick_21600",
+		28800: "arn:aws:sns:us-east-1:525932482084:bitfinex_tick_28800",
+		43200: "arn:aws:sns:us-east-1:525932482084:bitfinex_tick_43200",
+		86400: "arn:aws:sns:us-east-1:525932482084:bitfinex_tick_86400",
+	}
+
+	bfxClient := bitfinex.NewClient()
+	svc := sns.New(session.New(), aws.NewConfig().WithRegion("us-east-1"))
 
 	db, err := sql.Open("postgres",
 		"host="+dbConfig.Host+
@@ -69,8 +87,11 @@ func main() {
 			for _, interval := range granularitiInterval {
 				ticks := trade.Granulate(thisTrade, granularities[interval])
 				database.InsertTicks(db, granularities[interval].TableName, ticks)
-				if live {
-					//last tick to SNS
+				if live && len(ticks) > 0 {
+					awsutil.SnsPublish(svc, ticks[0], snsTopicArn[interval])
+					if err != nil {
+						log.Println("failed to publish to SNS. Error: " + err.Error())
+					}
 				}
 			}
 		}
