@@ -6,4 +6,5 @@ RUN mkdir -p /go/src/github.com/cluda/btcdata
 ADD . /go/src/github.com/cluda/btcdata
 WORKDIR /go/src/github.com/cluda/btcdata 
 RUN glide install
-RUN go run main.go
+EXPOSE 80
+CMD ["go", "run", "main.go"]
