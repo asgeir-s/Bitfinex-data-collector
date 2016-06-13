@@ -19,10 +19,10 @@ import (
 )
 
 type databaseConfig struct {
-	Host    string `env:"DB_HOST" envDefault:"192.168.0.100"`
-	User    string `env:"DB_USER" envDefault:"testuser"`
-	Pasword string `env:"DB_PASSWORD" envDefault:"Password123"`
-	Name    string `env:"DB_NAME" envDefault:"timeseries"`
+	Host    string `env:"DB_HOST" envDefault:"bitfinexdata.c8amlpm3pfhj.eu-central-1.rds.amazonaws.com"`
+	User    string `env:"DB_USER" envDefault:"bitfinexdata"`
+	Pasword string `env:"DB_PASSWORD" envDefault:"ZnRcAZBRCjFFioE5iHkOjiw"`
+	Name    string `env:"DB_NAME" envDefault:"bitfinexdata"`
 	Port    string `env:"DB_PORT" envDefault:"5432"`
 }
 
