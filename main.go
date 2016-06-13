@@ -118,12 +118,13 @@ func main() {
 				// add to tick table
 				_, err = database.InsertTrades(db, thisTrade)
 				if err != nil {
-					log.Fatal("could not add this trade to the trade table. Error: ", err.Error())
+					log.Println("could not add this trade to the trade table. Error: ", err.Error())
+				} else {
+					// granulate
+					granulateTrades(thisTrade, true)
+					fmt.Printf(".")
+					newestOriginID = thisTrade[0].OriginID
 				}
-				// granulate
-				granulateTrades(thisTrade, true)
-				fmt.Printf(".")
-				newestOriginID = thisTrade[0].OriginID
 			} else {
 				log.Printf("ignores already prosessed. tradeID: %v, lastProsessedTradeID: %v", thisTrade[0].OriginID, newestOriginID)
 			}

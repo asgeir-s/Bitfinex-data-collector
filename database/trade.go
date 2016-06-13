@@ -14,7 +14,7 @@ import (
 func CreateTradeTableIfNotExcists(db *sql.DB) (string, error) {
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS bitfinex_trade (
   id serial primary key,
-  origin_id bigint NOT NULL,
+  origin_id bigint UNIQUE NOT NULL,
   trade_time bigint NOT NULL,
   price numeric(10,3) NOT NULL,
   amount numeric(20,8) NOT NULL,
