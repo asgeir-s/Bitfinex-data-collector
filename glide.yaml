@@ -1,0 +1,10 @@
+package: github.com/cluda/btcdata
+import:
+- package: github.com/aws/aws-sdk-go
+  subpackages:
+  - aws
+  - aws/session
+  - service/sns
+- package: github.com/caarlos0/env
+- package: github.com/cluda/bitfinex-api-go
+- package: github.com/lib/pq

@@ -1,0 +1,43 @@
+hash: 27e43745b0476d47116423fbd33110b0c3430a5550e32c42429725671a2d3ae9
+updated: 2016-06-13T14:14:59.378579915+02:00
+imports:
+- name: github.com/aws/aws-sdk-go
+  version: 64c371362a7b5ecafa2d7cdf90d19aba7343ae02
+  subpackages:
+  - aws
+  - aws/session
+  - service/sns
+  - aws/awserr
+  - aws/credentials
+  - aws/client
+  - aws/corehandlers
+  - aws/defaults
+  - aws/request
+  - private/endpoints
+  - aws/awsutil
+  - aws/client/metadata
+  - private/protocol
+  - private/protocol/query
+  - private/signer/v4
+  - aws/credentials/ec2rolecreds
+  - aws/ec2metadata
+  - private/protocol/query/queryutil
+  - private/protocol/xml/xmlutil
+  - private/protocol/rest
+- name: github.com/caarlos0/env
+  version: b060a60369b6229a029f8a1ddae75bb107a7d2db
+- name: github.com/cluda/bitfinex-api-go
+  version: 8318b20cb243a78907ffc118f198c2ea534af025
+- name: github.com/go-ini/ini
+  version: 72ba3e6b9e6b87e0c74c9a7a4dc86e8dd8ba4355
+- name: github.com/jmespath/go-jmespath
+  version: 0b12d6b521d83fc7f755e7cfc1b1fbdd35a01a74
+- name: github.com/lib/pq
+  version: ee1442bda7bd1b6a84e913bdb421cb1874ec629d
+  subpackages:
+  - oid
+- name: golang.org/x/net
+  version: 3f122ce3dbbe488b7e6a8bdb26f41edec852a40b
+  subpackages:
+  - websocket
+devImports: []
