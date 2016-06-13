@@ -24,11 +24,15 @@ type databaseConfig struct {
 	Pasword string `env:"DB_PASSWORD" envDefault:"ZnRcAZBRCjFFioE5iHkOjiw"`
 	Name    string `env:"DB_NAME" envDefault:"bitfinexdata"`
 	Port    string `env:"DB_PORT" envDefault:"5432"`
+		VarTe   string `env:"VAR_TE" envDefault:"22"`
+
 }
 
 func main() {
 	dbConfig := databaseConfig{}
 	env.Parse(&dbConfig)
+
+	println("!!!!! VAR-TE: 33==" + dbConfig.VarTe)
 
 	granularitiInterval := []int{1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400} //1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400
 	snsTopicArn := map[int]string{

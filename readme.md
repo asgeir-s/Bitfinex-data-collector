@@ -24,3 +24,9 @@ pg_hba.conf
     #host    replication     sogasg        ::1/128                 trust
 
 With problems: RESTART COMPUTER :P
+
+## ToDo
+
+-   move topics to europe
+-   external config
+-   make sure only one instance is running at the time (make sure ticks do not duplucate)
