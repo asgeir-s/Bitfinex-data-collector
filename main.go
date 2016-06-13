@@ -19,20 +19,16 @@ import (
 )
 
 type databaseConfig struct {
-	Host    string `env:"DB_HOST" envDefault:"bitfinexdata.c8amlpm3pfhj.eu-central-1.rds.amazonaws.com"`
-	User    string `env:"DB_USER" envDefault:"bitfinexdata"`
-	Pasword string `env:"DB_PASSWORD" envDefault:"ZnRcAZBRCjFFioE5iHkOjiw"`
-	Name    string `env:"DB_NAME" envDefault:"bitfinexdata"`
+	Host    string `env:"DB_HOST" envDefault:"localhost"`
+	User    string `env:"DB_USER" envDefault:"testuser"`
+	Pasword string `env:"DB_PASSWORD" envDefault:"Password123"`
+	Name    string `env:"DB_NAME" envDefault:"timeseries"`
 	Port    string `env:"DB_PORT" envDefault:"5432"`
-		VarTe   string `env:"VAR_TE" envDefault:"22"`
-
 }
 
 func main() {
 	dbConfig := databaseConfig{}
 	env.Parse(&dbConfig)
-
-	println("!!!!! VAR-TE: 33==" + dbConfig.VarTe)
 
 	granularitiInterval := []int{1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400} //1800, 3600, 7200, 14400, 21600, 28800, 43200, 86400
 	snsTopicArn := map[int]string{

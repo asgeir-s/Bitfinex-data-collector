@@ -1,3 +1,15 @@
+## Run in docker
+
+    1.  setup docker
+    2.  docker build -t btcdata .
+    3.  docker run -e DB_HOST=192.168.99.100 --rm -t btcdata (DB_HOST should be set to the hosts IP)
+
+
+    - set environment variables: -e VAR_TE=99
+
+## Run in raw
+    1.  go run main.go
+
 ## Local Testing Setup
 
 #### Postgres
