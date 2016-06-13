@@ -64,15 +64,18 @@ func main() {
 	}
 	granularities := trade.InitializeGranularities(granularitiInterval, newestTicks, tradesThatNeedGranulating[0])
 
-	granulateTrades := func(thisTrades []trade.Trade) {
+	granulateTrades := func(thisTrades []trade.Trade, live bool) {
 		for _, thisTrade := range thisTrades {
 			for _, interval := range granularitiInterval {
 				ticks := trade.Granulate(thisTrade, granularities[interval])
 				database.InsertTicks(db, granularities[interval].TableName, ticks)
+				if live {
+					//last tick to SNS
+				}
 			}
 		}
 	}
-	granulateTrades(tradesThatNeedGranulating)
+	granulateTrades(tradesThatNeedGranulating, false)
 
 	// Create new connection
 	err = bfxClient.WebSocket.Connect()
@@ -97,7 +100,7 @@ func main() {
 					log.Fatal("could not add this trade to the trade table. Error: ", err.Error())
 				}
 				// granulate
-				granulateTrades(thisTrade)
+				granulateTrades(thisTrade, true)
 				fmt.Printf(".")
 				newestOriginID = thisTrade[0].OriginID
 			} else {
