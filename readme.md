@@ -12,6 +12,12 @@
 
 ## Local Testing Setup
 
+#### Manually creating test tick table (not for production)
+
+    psql -p 5432 -d timeseries -c "CREATE TABLE IF NOT EXISTS bitfinex_trade (id serial primary key, origin_id bigint, trade_time bigint NOT NULL, price numeric(10,3) NOT NULL, amount numeric(20,8) NOT NULL, trade_type varchar(5));"
+
+    psql -p 5432 -d timeseries -c "COPY bitfinex_trade(trade_time, price, amount) FROM '/Users/sogasg/Downloads/bitfinexUSD.csv' DELIMITER ',' CSV;"
+
 #### Postgres
 
 postgresql.conf
